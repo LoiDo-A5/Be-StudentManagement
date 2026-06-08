@@ -1,11 +1,19 @@
 from django.db.models import Count, Q
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.mixins import CreateModelMixin, ListModelMixin, RetrieveModelMixin
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.mixins import CreateModelMixin, DestroyModelMixin, ListModelMixin, RetrieveModelMixin
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from accounts.models import ForumComment, ForumPost, ForumPostLike, ForumSpace, User
+from accounts.models.user import USER_ROLE
+
+
+def ensure_forum_moderator(user):
+    if user.role not in [USER_ROLE.TEACHER, USER_ROLE.ADMIN]:
+        raise PermissionDenied('Only teachers and administrators can delete forum content.')
+        raise PermissionDenied('Chá»‰ giÃ¡o viÃªn hoáº·c quáº£n trá»‹ viÃªn má»›i cÃ³ quyá»n xÃ³a ná»™i dung diá»…n Ä‘Ã n.')
 
 
 class ForumUserSerializer(serializers.ModelSerializer):
@@ -30,6 +38,8 @@ class ForumSpaceSerializer(serializers.ModelSerializer):
 
 class ForumCommentSerializer(serializers.ModelSerializer):
     author = ForumUserSerializer(read_only=True)
+    post = serializers.PrimaryKeyRelatedField(read_only=True)
+    parent = serializers.PrimaryKeyRelatedField(read_only=True)
     post_id = serializers.PrimaryKeyRelatedField(source='post', queryset=ForumPost.objects.all(), write_only=True)
     parent_id = serializers.PrimaryKeyRelatedField(
         source='parent',
@@ -43,6 +53,16 @@ class ForumCommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = ForumComment
         fields = ['id', 'post', 'post_id', 'parent', 'parent_id', 'author', 'content', 'created_at', 'updated_at', 'replies']
+
+    def to_internal_value(self, data):
+        if hasattr(data, 'copy'):
+            data = data.copy()
+            if data.get('post_id') is None and data.get('post') is not None:
+                data['post_id'] = data.get('post')
+            if data.get('parent_id') is None and data.get('parent') is not None:
+                data['parent_id'] = data.get('parent')
+
+        return super().to_internal_value(data)
 
     def get_replies(self, obj):
         replies = obj.replies.select_related('author', 'post').all()
@@ -99,7 +119,7 @@ class ForumPostSerializer(serializers.ModelSerializer):
         raise serializers.ValidationError('Bạn không có quyền đăng bài trong diễn đàn này.')
 
 
-class ForumSpaceViewSet(CreateModelMixin, ListModelMixin, RetrieveModelMixin, viewsets.GenericViewSet):
+class ForumSpaceViewSet(CreateModelMixin, DestroyModelMixin, ListModelMixin, RetrieveModelMixin, viewsets.GenericViewSet):
     serializer_class = ForumSpaceSerializer
     permission_classes = [IsAuthenticated]
 
@@ -113,6 +133,10 @@ class ForumSpaceViewSet(CreateModelMixin, ListModelMixin, RetrieveModelMixin, vi
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
+
+    def perform_destroy(self, instance):
+        ensure_forum_moderator(self.request.user)
+        instance.delete()
 
 
 class ForumPostViewSet(CreateModelMixin, ListModelMixin, RetrieveModelMixin, viewsets.GenericViewSet):
@@ -158,7 +182,7 @@ class ForumPostViewSet(CreateModelMixin, ListModelMixin, RetrieveModelMixin, vie
         )
 
 
-class ForumCommentViewSet(CreateModelMixin, ListModelMixin, viewsets.GenericViewSet):
+class ForumCommentViewSet(CreateModelMixin, DestroyModelMixin, ListModelMixin, viewsets.GenericViewSet):
     serializer_class = ForumCommentSerializer
     permission_classes = [IsAuthenticated]
 
@@ -173,10 +197,14 @@ class ForumCommentViewSet(CreateModelMixin, ListModelMixin, viewsets.GenericView
 
         if post_id:
             queryset = queryset.filter(post_id=post_id)
-        else:
+        elif self.action == 'list':
             queryset = queryset.none()
 
         return queryset
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
+
+    def perform_destroy(self, instance):
+        ensure_forum_moderator(self.request.user)
+        instance.delete()

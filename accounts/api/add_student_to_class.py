@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from rest_framework import serializers
 
 from accounts.models import User, ClassName, ClassStudent
+from accounts.models.user import USER_ROLE
 
 
 class ClassStudentSerializer(serializers.ModelSerializer):
@@ -25,6 +26,10 @@ class AddStudentToClass(APIView):
             return Response({'error': 'Cả student_id và class_id đều là bắt buộc'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
+            student = User.objects.get(id=student_id)
+            if student.role != USER_ROLE.STUDENT:
+                return Response({'error': 'Chỉ có thể thêm tài khoản học sinh vào lớp'}, status=status.HTTP_400_BAD_REQUEST)
+
             existing_class = ClassStudent.objects.filter(student_id=student_id).first()
             if existing_class:
                 return Response({'error': 'Học sinh này đã được phân vào một lớp khác'},

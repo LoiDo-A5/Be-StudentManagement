@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from accounts.models import User, SystemSetting
 from django.contrib.auth.hashers import make_password
 from datetime import date
+from accounts.models.user import USER_ROLE
 
 class RegisterPhoneSerializer(serializers.ModelSerializer):
     password1 = serializers.CharField(write_only=True)
@@ -86,6 +87,7 @@ class RegisterPhoneApi(GenericAPIView):
             birthday=birthday,
             address=serializer.validated_data['address'],
             time_zone=serializer.validated_data.get('time_zone', 'Asia/Ho_Chi_Minh'),
+            role=USER_ROLE.STUDENT,
         )
 
         return Response(

@@ -12,6 +12,8 @@ from django_filters import rest_framework as filters
 
 class UserPagination(PageNumberPagination):
     page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
     def get_paginated_response(self, data):
         data_response = {
@@ -72,10 +74,11 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def list_student(self, request):
-        students = User.objects.filter(role=1)
         class_name_id = request.query_params.get('class_name_id', None)
         if class_name_id:
-            students = students.filter(classstudent__class_name__id=class_name_id)
+            students = User.objects.filter(classstudent__class_name__id=class_name_id).distinct()
+        else:
+            students = User.objects.filter(role=1)
 
         students = self.filter_queryset(students)
 
