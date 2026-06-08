@@ -8,6 +8,7 @@ from accounts.api.class_level import ClassLevelViewSet
 from accounts.api.class_list import ClassListAPIView
 from accounts.api.class_name import ClassNameViewSet
 from accounts.api.friendship_api import FriendshipViewSet
+from accounts.api.forum import ForumCommentViewSet, ForumPostViewSet, ForumSpaceViewSet
 from accounts.api.list_subject_score import SubjectScoreList
 from accounts.api.login_api import LoginApi
 from accounts.api.me import MeApi
@@ -27,6 +28,9 @@ router.register(r'friendship', FriendshipViewSet, basename='friendship')
 router.register(r'user', UserViewSet, basename='user')
 router.register(r'class_level', ClassLevelViewSet, basename='class_level')
 router.register(r'class_name', ClassNameViewSet, basename='class_name')
+router.register(r'forum-spaces', ForumSpaceViewSet, basename='forum-space')
+router.register(r'forum-posts', ForumPostViewSet, basename='forum-post')
+router.register(r'forum-comments', ForumCommentViewSet, basename='forum-comment')
 
 urlpatterns = [
     path('login/', LoginApi.as_view()),
@@ -34,6 +38,12 @@ urlpatterns = [
     path('me/', MeApi.as_view()),
     path('rooms/', ChatRoomList.as_view(), name='rooms'),
     path('messages/', ListMessage.as_view(), name='messages'),
+    path('forum-spaces/', ForumSpaceViewSet.as_view({'get': 'list', 'post': 'create'}), name='forum-space-list'),
+    path('forum-spaces/<int:pk>/', ForumSpaceViewSet.as_view({'get': 'retrieve'}), name='forum-space-detail'),
+    path('forum-posts/', ForumPostViewSet.as_view({'get': 'list', 'post': 'create'}), name='forum-post-list'),
+    path('forum-posts/<int:pk>/', ForumPostViewSet.as_view({'get': 'retrieve'}), name='forum-post-detail'),
+    path('forum-posts/<int:pk>/like/', ForumPostViewSet.as_view({'post': 'like'}), name='forum-post-like'),
+    path('forum-comments/', ForumCommentViewSet.as_view({'get': 'list', 'post': 'create'}), name='forum-comment-list'),
     path('token/refresh/', TokenRefreshView.as_view()),
     path('direct_messages/', DirectMessages.as_view(), name='direct_messages'),
     path('add_student_to_class/', AddStudentToClass.as_view(), name='add_student_to_class'),

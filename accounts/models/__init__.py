@@ -10,3 +10,4 @@ from .student_score import StudentScore
 from .subject import Subject
 from .subject_score import SubjectScore
 from .system_setting_age import SystemSetting
+from .forum import ForumSpace, ForumPost, ForumComment, ForumPostLike
