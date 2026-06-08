@@ -12,5 +12,8 @@ WORKDIR /app
 
 COPY pyproject.toml ./
 COPY poetry.lock ./
+COPY entrypoint.sh ./entrypoint.sh
 
 RUN poetry install --no-root --only main
+
+ENTRYPOINT ["/bin/sh", "/app/entrypoint.sh"]

@@ -20,7 +20,7 @@ services:
       - backend
 
   db:
-    image: postgres:latest
+    image: postgres:16
     container_name: manage-student-db
     environment:
       - POSTGRES_DB=mydatabase
